@@ -3,6 +3,7 @@ package tictactoe;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Line2D;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -10,14 +11,16 @@ import javax.swing.border.Border;
 
 public class Gui extends JFrame implements ActionListener {
 
+    // Points
+    Point startPoint;
+    Point endPoint;
+
     // Images
     private Image markerNoneImage;
     private Image markerXImage;
     private Image markerOImage;
     private Image winnerImage;
     private Image catsgameImage;
-    private Image turnoImage;
-    private Image turnxImage;
     private Image resetImage;
 
     // Buttons
@@ -44,7 +47,7 @@ public class Gui extends JFrame implements ActionListener {
 
         // Initialization
         super(title);
-        setSize(550, 800);
+        setSize(400, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         contentPane.setLayout(layout);
@@ -74,8 +77,6 @@ public class Gui extends JFrame implements ActionListener {
             markerOImage    = ImageIO.read(getClass().getResource("/resources/markerX.png"));
             winnerImage     = ImageIO.read(getClass().getResource("/resources/winner.png"));
             catsgameImage   = ImageIO.read(getClass().getResource("/resources/catsgame.png"));
-            turnoImage      = ImageIO.read(getClass().getResource("/resources/turno.png"));
-            turnxImage      = ImageIO.read(getClass().getResource("/resources/turnx.png"));
             resetImage      = ImageIO.read(getClass().getResource("/resources/reset.png"));
 
         } catch (Exception ex) {
@@ -113,9 +114,12 @@ public class Gui extends JFrame implements ActionListener {
 
         }
 
+        // Creating the middle panel
         middlePanel.setBorder(padding10);
         middlePanel.setBackground(colorGray);
+        middlePanel.setOpaque(false);
 
+        // Creating the bottom panel
         winnerLabel.setVisible(false);
         bottomPanel.add(winnerLabel);
         bottomPanel.setBackground(new Color(60, 60, 60));
@@ -136,52 +140,81 @@ public class Gui extends JFrame implements ActionListener {
 
     }
 
+    // Managing button clicks
     public void actionPerformed(ActionEvent e) {
 
+        // Not completely necessary, but put it in anyways.
         if(turnCount != 9) {
 
+            // Loop each button
             for (int i = 0; i < 9; i++) {
 
+                // If the button is the one they clicked
                 if (e.getSource() == buttons[i]) {
 
                     turnCount++;
 
+                    // Disable that button in the gui and disable it's object. Set it's location to that spot.
                     buttons[i].setEnabled(false);
                     markers[i].setEnabled(false);
                     markers[i].setLocation(i);
 
+                    // Set the type of that marker based on what turn it currently is.
                     if (turnCount % 2 == 0)
                         markers[i].setType("O");
                     else
                         markers[i].setType("X");
 
+                    // If we already found the button they pressed, break out.
                     break;
 
                 }
             }
         }
 
+        // If they pressed the rest button.
         if(e.getSource() == resetButton) {
 
             ResetMarkers();
 
         }
 
+        // Update the markers after every button press.
         UpdateMarkers();
 
     }
 
+    public void paint(Graphics g) {
+        super.paint(g);
+
+        if(winnerLabel.isVisible()) {
+
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setStroke(new BasicStroke(10));
+            g2.setColor(new Color(255, 0, 0));
+
+            g2.draw(new Line2D.Float((float) startPoint.getX(), (float) startPoint.getY(), (float) endPoint.getX(), (float) endPoint.getY()));
+
+            // Draw the line here. MAKE SURE TO CALL repaint() IF YOU NEED TO UPDATE AT ALL.
+
+        }
+    }
+
     public void UpdateMarkers() {
 
+        // Loop the markers
         for(int i = 0; i < 9; i++) {
 
+            // If that specific marker's type is X
             if(markers[i].getType().equals("X")) {
 
                 buttons[i].setIcon(new ImageIcon(markerOImage));
+                buttons[i].setDisabledIcon(new ImageIcon(markerOImage));
 
             } else if(markers[i].getType().equals("O")) {
 
                 buttons[i].setIcon(new ImageIcon(markerXImage));
+                buttons[i].setDisabledIcon(new ImageIcon(markerXImage));
 
             } else  {
 
@@ -191,62 +224,60 @@ public class Gui extends JFrame implements ActionListener {
 
         }
 
-        //if (turnCount % 2 == 0)
-        //    turnLabel.setIcon(new ImageIcon(turnxImage));
-        //else
-        //    turnLabel.setIcon(new ImageIcon(turnoImage));
-
         CheckCases();
 
     }
 
     public void CheckCases() {
 
+        // Loop all the markers
         for(int i = 0; i < 8; i++) {
 
+            // Reset count for each marker we're checking
             int countO = 0;
             int countX = 0;
 
+            // Loop each case
             for(int j = 0; j < 3; j++) {
 
+                // Check if that iteration in the specific case is X, if it is, increment countx.
                 if(markers[cases[i][j]].getType().equals("X")) {
 
                     countX++;
 
-                } if(markers[cases[i][j]].getType().equals("O")) {
+                    // Check if that iteration in the specific case is O, if it is, increment counto.
+                } else if(markers[cases[i][j]].getType().equals("O")) {
 
                     countO++;
 
                 }
 
-
             }
 
-            if(countO == 3) {
+            // If we found a winner
+            if(countO == 3 || countX == 3) {
+
+                startPoint = buttons[cases[i][0]].getLocation();
+                endPoint = buttons[cases[i][2]].getLocation();
 
                 winnerLabel.setVisible(true);
                 winnerLabel.setIcon(new ImageIcon(winnerImage));
-                //turnLabel.setVisible(false);
 
                 DisableMarkers();
+                repaint();
+
+                // Stop the loop so we don't check more than we need to
                 break;
 
-            } else if(countX == 3) {
-
-                winnerLabel.setVisible(true);
-                winnerLabel.setIcon(new ImageIcon(winnerImage));
-                //turnLabel.setVisible(false);
-
-                DisableMarkers();
-                break;
-
-            } else if(turnCount == 9){
+                // Or if it's a cat's game
+            }  else if(turnCount == 9){
 
                 winnerLabel.setVisible(true);
                 winnerLabel.setIcon(new ImageIcon(catsgameImage));
                 //turnLabel.setVisible(false);
 
                 DisableMarkers();
+                repaint();
                 break;
 
             }
@@ -257,6 +288,7 @@ public class Gui extends JFrame implements ActionListener {
 
     public void DisableMarkers() {
 
+        // Loop all the markers and buttons and disable them
         for(int i = 0; i < 9; i++) {
 
             markers[i].setEnabled(false);
@@ -268,8 +300,10 @@ public class Gui extends JFrame implements ActionListener {
 
     public void ResetMarkers() {
 
+        // Reset turncount
         turnCount = 0;
 
+        // Loop the markers and buttons and set them to be defaults.
         for(int i = 0; i < 9; i++) {
 
             markers[i].setEnabled(true);
@@ -281,7 +315,6 @@ public class Gui extends JFrame implements ActionListener {
             buttons[i].setVisible(true);
 
             winnerLabel.setVisible(false);
-            //turnLabel.setIcon(new ImageIcon(turnxImage));
 
         }
 
